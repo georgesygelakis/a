@@ -2,6 +2,7 @@ import './style.css';
 import { initDarkMode } from './utils/darkMode.js';
 import { ChatInterface } from './components/ChatInterface.js';
 import { InitialForm } from './components/InitialForm.js';
+import { DarkModeToggle } from './components/DarkModeToggle.js';
 
 const app = document.querySelector('#app');
 const messages = [];
@@ -10,16 +11,34 @@ let selectedRelationship = '';
 
 function initializeApp() {
     initDarkMode();
-    if (!showingChat) {
-        renderInitialForm();
-    } else {
-        renderChat();
-    }
+    if (!app) return;
+    renderApp();
 }
 
-function renderInitialForm() {
-    app.innerHTML = InitialForm({ onSubmit: handleInitialSubmit });
-    setupFormHandlers();
+function renderApp() {
+    if (!app) return;
+    
+    // Clear previous content
+    app.innerHTML = '';
+
+    // Add dark mode toggle
+    app.innerHTML = DarkModeToggle();
+
+    // Add main content
+    app.innerHTML += showingChat 
+        ? ChatInterface({ messages, relationship: selectedRelationship })
+        : InitialForm();
+
+    if (!showingChat) {
+        setupFormHandlers();
+    } else {
+        setupChatHandlers();
+        // Scroll to bottom of chat
+        const chatContainer = document.querySelector('.overflow-y-auto');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    }
 }
 
 function setupFormHandlers() {
@@ -41,8 +60,8 @@ function setupFormHandlers() {
 
 function handleInitialSubmit(e) {
     e.preventDefault();
-    const age = document.getElementById('age').value;
-    const budget = document.getElementById('budget').value;
+    const age = document.getElementById('age')?.value;
+    const budget = document.getElementById('budget')?.value;
     
     if (!age || !budget || !selectedRelationship) return;
 
@@ -52,30 +71,31 @@ function handleInitialSubmit(e) {
     });
 
     showingChat = true;
-    renderChat();
+    renderApp();
 }
 
-function renderChat() {
-    app.innerHTML = ChatInterface({ 
-        messages, 
-        relationship: selectedRelationship 
-    });
+function setupChatHandlers() {
+    const chatForm = document.getElementById('chat-form');
+    const userInput = document.getElementById('user-input');
     
-    const chatContainer = app.querySelector('.overflow-y-auto');
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-    document.getElementById('chat-form')?.addEventListener('submit', handleChatSubmit);
+    if (userInput) {
+        userInput.setAttribute('autocomplete', 'off');
+    }
+    
+    chatForm?.addEventListener('submit', handleChatSubmit);
 }
 
 async function handleChatSubmit(e) {
     e.preventDefault();
     const input = document.getElementById('user-input');
-    const userMessage = input.value.trim();
+    if (!input) return;
     
+    const userMessage = input.value.trim();
     if (!userMessage) return;
 
     messages.push({ role: 'user', content: userMessage });
     input.value = '';
-    renderChat();
+    renderApp();
 
     try {
         const response = await fetch('/api/chat', {
@@ -90,12 +110,17 @@ async function handleChatSubmit(e) {
         
         const data = await response.json();
         messages.push({ role: 'assistant', content: data.content });
-        renderChat();
+        renderApp();
     } catch (error) {
         console.error('Error:', error);
         messages.push({ role: 'assistant', content: 'Sorry, there was an error processing your request.' });
-        renderChat();
+        renderApp();
     }
 }
 
-initializeApp();
+// Initialize the app when the DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    initializeApp();
+}

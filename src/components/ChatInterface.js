@@ -1,5 +1,4 @@
 import { Message } from './Message.js';
-import { DarkModeToggle } from './DarkModeToggle.js';
 
 export function ChatInterface({ messages, relationship }) {
     return `
@@ -30,6 +29,5 @@ export function ChatInterface({ messages, relationship }) {
                 </button>
             </form>
         </div>
-        ${DarkModeToggle()}
     `;
 }

@@ -2,12 +2,19 @@ import express from 'express';
 import cors from 'cors';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from dist
 app.use(express.static('dist'));
 
 const client = new OpenAI({
@@ -34,8 +41,14 @@ app.post('/api/chat', async (req, res) => {
         
         res.json(completion.choices[0].message);
     } catch (error) {
+        console.error('API Error:', error);
         res.status(500).json({ error: error.message });
     }
+});
+
+// Handle all other routes for SPA
+app.get('*', (req, res) => {
+    res.sendFile(join(__dirname, 'dist', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
